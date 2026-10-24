@@ -1,0 +1,29 @@
+# Author: al4n4n (Dadb0d)
+title: ZDI-CAN-33774 ksmbd Protocol Dispatch Race OOB Read
+id: a7c33774-0001-4d8e-b9f1-opsflip000001
+status: experimental
+description: >
+  Detects KASAN slab-out-of-bounds READ in init_smb2_rsp_hdr,
+  triggered by the ksmbd protocol dispatch race condition where
+  an SMB1 buffer is processed with SMB2 handlers.
+references:
+  - https://lore.kernel.org/lkml/BYAPR01MB383076AC412E19C48CFBEAE980662@BYAPR01MB3830.prod.exchangelabs.com/
+  - https://blog.al4n4n.com
+author: al4n4n (Dadb0d)
+date: 2026-10-24
+tags:
+  - attack.initial_access
+  - attack.t1190
+  - cve.zdi-can-33774
+logsource:
+  product: linux
+  service: kernel
+detection:
+  kasan_read:
+    - 'BUG: KASAN: slab-out-of-bounds in init_smb2_rsp_hdr'
+  alloc_origin:
+    - 'ksmbd_conn_handler_loop'
+  condition: kasan_read or alloc_origin
+falsepositives:
+  - Kernel fuzzing or testing frameworks
+level: critical

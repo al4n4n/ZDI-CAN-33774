@@ -1,0 +1,11 @@
+# Author: al4n4n (Dadb0d)
+# Suricata rule: ZDI-CAN-33774 ksmbd ops-flip race OOB read
+# Detects rapid SMB1/SMB2 protocol mixing on a single TCP session,
+# characteristic of the ops-flip trigger pattern.
+#
+# The exploit sends a burst of SMB1 PDUs (0xFF 'S' 'M' 'B') followed
+# immediately by an SMB2 ECHO (0xFE 'S' 'M' 'B', command 0x000d) in
+# the same TCP segment. Legitimate clients complete SMB1 negotiation
+# before switching to SMB2 and never interleave them.
+
+alert tcp any any -> any 445 (msg:"ET EXPLOIT ZDI-CAN-33774 ksmbd SMB1/SMB2 Ops-Flip Race Attempt"; flow:to_server,established; content:"|ff|SMB"; depth:8; offset:4; content:"|fe|SMB"; distance:0; content:"|0d 00|"; distance:8; within:2; threshold:type threshold, track by_src, count 10, seconds 2; classtype:attempted-admin; sid:2033774; rev:1; metadata:affected_product Linux_Kernel_ksmbd, attack_target Server, deployment Perimeter, created_at 2026_10_24, cve ZDI-CAN-33774;)
