@@ -95,12 +95,12 @@ ZDI-CAN-33774/
 ┌─────────────────────────── Host (your machine) ──────────────────────────┐
 │                                                                          │
 │  ┌──────────────────────── QEMU VM ────────────────────────────────────┐ │
-│  │  Kernel 7.3-rc3 + CONFIG_KASAN=y                                   │ │
+│  │  Kernel 7.3-rc3 + CONFIG_KASAN=y                                    │ │
 │  │                                                                     │ │
-│  │  ┌─────────────┐        TCP :445         ┌───────────────────────┐ │ │
+│  │  ┌─────────────┐        TCP :445          ┌───────────────────────┐ │ │
 │  │  │  opsflip    │ ──────────────────────── │  ksmbd (in-kernel)    │ │ │
-│  │  │  (PoC)      │   SMB1 burst + SMB2     │                       │ │ │
-│  │  │             │ ◄────────────────────── │  guest share:         │ │ │
+│  │  │  (PoC)      │   SMB1 burst + SMB2      │                       │ │ │
+│  │  │             │ ◄─────────────────────── │  guest share:         │ │ │
 │  │  │  Sends:     │   77-byte error reply    │   /srv/share          │ │ │
 │  │  │  64× SMB1   │   with 28 leaked bytes   │                       │ │ │
 │  │  │  1× SMB2    │                          │  conn->ops race:      │ │ │
@@ -120,7 +120,7 @@ ZDI-CAN-33774/
 │  │  └─────────────┘                                                    │ │
 │  └─────────────────────────────────────────────────────────────────────┘ │
 │                                                                          │
-│  You run: bash setup.sh → bash verify.sh 10.0.2.15                      │
+│  You run: bash setup.sh → bash verify.sh 10.0.2.15                       │
 │  All inside the VM. SSH in or use the QEMU console.                      │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
