@@ -89,6 +89,80 @@ ZDI-CAN-33774/
     └── sigma_ksmbd_opsflip_oob.yml
 ```
 
+## Lab topology
+
+```
+┌─────────────────────────── Host (your machine) ──────────────────────────┐
+│                                                                          │
+│  ┌──────────────────────── QEMU VM ────────────────────────────────────┐ │
+│  │  Kernel 7.3-rc3 + CONFIG_KASAN=y                                   │ │
+│  │                                                                     │ │
+│  │  ┌─────────────┐        TCP :445         ┌───────────────────────┐ │ │
+│  │  │  opsflip    │ ──────────────────────── │  ksmbd (in-kernel)    │ │ │
+│  │  │  (PoC)      │   SMB1 burst + SMB2     │                       │ │ │
+│  │  │             │ ◄────────────────────── │  guest share:         │ │ │
+│  │  │  Sends:     │   77-byte error reply    │   /srv/share          │ │ │
+│  │  │  64× SMB1   │   with 28 leaked bytes   │                       │ │ │
+│  │  │  1× SMB2    │                          │  conn->ops race:      │ │ │
+│  │  │     ECHO    │                          │  SMB1 buf parsed      │ │ │
+│  │  └─────────────┘                          │  with SMB2 handler    │ │ │
+│  │        │                                  └───────────────────────┘ │ │
+│  │        │ reads                                      │               │ │
+│  │        ▼                                            ▼               │ │
+│  │  ┌─────────────┐                          ┌───────────────────────┐ │ │
+│  │  │  verify.sh  │                          │  dmesg / KASAN        │ │ │
+│  │  │             │  grep "BUG: KASAN"       │                       │ │ │
+│  │  │  Collects:  │ ◄─────────────────────── │  slab-out-of-bounds   │ │ │
+│  │  │  • wire     │                          │  READ in              │ │ │
+│  │  │    leaks    │                          │  init_smb2_rsp_hdr    │ │ │
+│  │  │  • KASAN    │                          └───────────────────────┘ │ │
+│  │  │  • verdict  │                                                    │ │
+│  │  └─────────────┘                                                    │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+│  You run: bash setup.sh → bash verify.sh 10.0.2.15                      │
+│  All inside the VM. SSH in or use the QEMU console.                      │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Traffic flow
+
+```
+ opsflip                          ksmbd (kernel)                 attacker sees
+ ───────                          ──────────────                 ─────────────
+    │                                   │
+    │── TCP connect :445 ──────────────►│
+    │                                   │
+    │── write(2): 64× SMB1 (35B each) ►│── queue_ksmbd_work() ×64
+    │             + 1× SMB2 ECHO (68B)─►│── ksmbd_init_smb_server()
+    │                                   │   flips conn->ops to SMB2
+    │                                   │
+    │                                   │── kworker picks up SMB1 work
+    │                                   │   with SMB2 handler:
+    │                                   │   init_smb2_rsp_hdr() reads
+    │                                   │   offset 40..67 of 40-byte buf
+    │                                   │   (28 bytes OOB from kmalloc-64)
+    │                                   │
+    │◄─ 77-byte SMB2 error reply ───────│
+    │   SessionId = heap bytes [44..51] │                    leaked 8B
+    │   Signature = heap bytes [52..67] │                    leaked 16B
+    │   TreeId    = heap bytes [40..43] │                    leaked 4B
+    │                                   │                    ─────────
+    │   (repeat ×thousands)             │                    28B / attempt
+```
+
+### What runs where
+
+| Script | Runs on | Needs | Does |
+|---|---|---|---|
+| `setup.sh` | **Inside VM** (root) | ksmbd-tools, gcc | Creates guest share, builds opsflip |
+| `check.py` | **Anywhere** (remote OK) | TCP to :445 | Probes for ksmbd, no exploit |
+| `poc.sh` | **Inside VM** | opsflip binary | Fires control + exploit, prints raw output |
+| `verify.sh` | **Inside VM** | opsflip + dmesg | Fires exploit, reads KASAN, prints verdict |
+| `opsflip` | **Anywhere** (remote OK) | TCP to :445 | The actual exploit binary |
+
+`opsflip` and `check.py` only need TCP connectivity (work remotely). `verify.sh` reads `dmesg` for KASAN evidence (must run on the target). `poc.sh` is a wrapper that calls `opsflip` and tells you to check dmesg yourself.
+
 ## Usage
 
 ### Lab environment
