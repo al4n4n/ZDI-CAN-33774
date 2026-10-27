@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="#the-bug">The Bug</a> · <a href="#check-non-destructive">Check</a> · <a href="#the-crash">Exploit</a> · <a href="#detection-rules">Detection</a> · <a href="#downstream-impact">Impact</a> · <a href="https://blog.al4n4n.com">Write-up</a>
+  <a href="#the-bug">The Bug</a> · <a href="#check-non-destructive">Check</a> · <a href="#the-crash">Exploit</a> · <a href="#detection-rules">Detection</a> · <a href="#downstream-impact">Impact</a> · <a href="https://blog.al4n4n.com/ZDI-CAN-33774-ksmbd-Protocol-Dispatch-Race-Condition/">Write-up</a>
 </p>
 
 ---
@@ -26,7 +26,7 @@ A race condition in `queue_ksmbd_work()` allows an unauthenticated attacker (gue
 
 There is also a path to OOB write via `smb2_set_info` → `parse_sec_desc`, and a NULL dereference path through `conn->ops->is_sign_req`.
 
-**Author:** [al4n4n](https://github.com/al4n4n) (Dadb0d) · **Write-up:** [blog.al4n4n.com](https://blog.al4n4n.com) · **Fixed in:** commit [`68f410fa`](https://git.kernel.org/pub/scm/linux/kernel/git/linkinjeon/smb.git/commit/?id=68f410faedaf6ee74d81e574733c50ebcc1bd8ed)
+**Author:** [al4n4n](https://github.com/al4n4n) (Dadb0d) · **Write-up:** [blog.al4n4n.com/ZDI-CAN-33774...](https://blog.al4n4n.com/ZDI-CAN-33774-ksmbd-Protocol-Dispatch-Race-Condition/) · **Fixed in:** commit [`68f410fa`](https://git.kernel.org/pub/scm/linux/kernel/git/linkinjeon/smb.git/commit/?id=68f410faedaf6ee74d81e574733c50ebcc1bd8ed)
 
 ---
 
